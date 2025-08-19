@@ -36,6 +36,11 @@ struct PortfolioView: View {
                     trailinNavBarButtons
                 }
             })
+            .onChange(of: vm.seaerchText, perform: { value in
+                if value == "" {
+                    removeSelectedCoin()
+                }
+            })
 //            .navigationBarItems(leading: XMarkButton()) // doplicate
         }
     }
@@ -51,13 +56,13 @@ extension PortfolioView {
     private var coinLogoList: some View {
         ScrollView(.horizontal,showsIndicators: false) {
             LazyHStack(spacing: 10) {
-                ForEach(vm.allCoins) { coin in
+                ForEach(vm.seaerchText.isEmpty ? vm.portfolioCoins : vm.allCoins) { coin in
                     CoinLogoView(coin: coin)
                         .frame(width: 75)
                         .padding(4)
                         .onTapGesture {
                             withAnimation(.easeIn) {
-                                selectedCoin = coin
+                                uppdateSelectedCoin(coin: coin)
                             }
                         }
                         .background (
@@ -68,6 +73,17 @@ extension PortfolioView {
             }
             .padding(.vertical,4)
             .padding(.leading)
+        }
+    }
+    
+    private func uppdateSelectedCoin(coin: CoinModel) {
+        selectedCoin = coin
+        
+        if let portfolioCoin = vm.portfolioCoins.first(where: { $0.id == coin.id }),
+           let amount = portfolioCoin.currentHoldings {
+            quantityText = "\(amount)"
+        } else {
+            quantityText = ""
         }
     }
     
@@ -126,10 +142,13 @@ extension PortfolioView {
     
     private func saveButtonPressed() {
         
-        guard selectedCoin != nil else { return }
+        guard
+            let coin = selectedCoin,
+            let amount = Double(quantityText)
+        else { return }
         
         // save  to portfolio
-        
+        vm.updatePortfolio(coin: coin, amount: amount)
         
         //show chekmart
         withAnimation(.easeIn) {
